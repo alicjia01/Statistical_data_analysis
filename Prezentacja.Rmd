@@ -1,0 +1,284 @@
+---
+title: "Spotify - Analiza SAD"
+author: "Jakub Maszkowski & Alicja Rączka"
+date: "2026-05-04"
+output: 
+  revealjs::revealjs_presentation:
+    theme: black
+---
+<style>
+
+.reveal {
+  font-size: 22px;
+}
+
+/* tytuł */
+.reveal h2 {
+  margin-top: 0px;
+  margin-bottom: 20px;
+}
+
+/* spacing slajdu */
+.reveal section {
+  padding-top: 20px;
+}
+
+/* usuń szare tło kodu */
+.reveal pre,
+.reveal pre code,
+.reveal code {
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 14px;
+}
+
+/* scroll dla dużych outputów */
+.reveal pre {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+# Kluczowe ustawienia dla wykresów, żeby nie „wypychały” tytułów
+knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
+  fig.height = 5,
+  fig.width = 9,
+  out.width = "90%"
+)
+```
+# Pobranie danych
+
+```{r}
+library(ggplot2)
+library(stats)
+library(GGally)
+library(stargazer)
+library(tidyr)
+library(dplyr)
+library(reshape2)
+library(rmarkdown)
+
+df <- read.csv("spotify_alltime_top100_songs.csv")
+df$dataset_part <- NULL
+```
+
+# Podsumowanie
+
+```{r}
+summary(df)
+```
+
+# Najbardziej popularne
+
+```{r}
+knitr::kable(head(df))
+```
+
+# Statystyki danych ilościowych
+
+```{r data1}
+ilosciowe <- c( "bpm", "danceability", "energy", "valence", "acousticness", "total_streams_billions")
+
+stargazer(df[ilosciowe], type = "text")
+```
+
+# Statystyki danych jakościowych
+
+```{r data2}
+df$genre_grouped <- "Other"
+df$genre_grouped[grepl("Pop", df$primary_genre)] <- "Pop"
+df$genre_grouped[grepl("Rock|Punk|Grunge|Folk", df$primary_genre)] <- "Rock/Folk"
+df$genre_grouped[grepl("Hip-Hop|Rap", df$primary_genre)] <- "Hip-Hop/Rap"
+df$genre_grouped[grepl("EDM|Dancehall", df$primary_genre)] <- "Electronic"
+df$genre_grouped <- as.factor(df$genre_grouped)
+
+jakosciowe <- c("primary_genre", "explicit", "artist_country", "genre_grouped")
+podsumuj_jakosciowe <- function(data, nazwa_kolumny) {
+  cat("\n--- Podsumowanie dla:", nazwa_kolumny, "---\n")
+
+  tab <- table(data[[nazwa_kolumny]])
+
+  prop <- prop.table(tab) * 100
+  res <- data.frame(
+    Liczność = as.vector(tab),
+    Procent = paste0(round(as.vector(prop), 2), "%")
+  )
+  rownames(res) <- names(tab)
+  res <- res[order(res$Liczność, decreasing = TRUE), ]
+  
+  return(res)
+}
+```
+
+#
+
+```{r data232}
+for (zmienna in jakosciowe) {
+  print(podsumuj_jakosciowe(df, zmienna))
+}
+```
+
+
+# Najpopularniejsi Artysci 
+
+```{r data3}
+separator_pattern <- "\\s*&\\s*|\\s+[Ff]t\\.\\s+|\\s+[Ff]eat\\.\\s+|\\s*,\\s*"
+
+all_artists_list <- strsplit(df$artist, separator_pattern)
+all_artists_vector <- unlist(all_artists_list)
+all_artists_vector <- trimws(all_artists_vector)
+individual_artist_counts <- table(all_artists_vector)
+popular_individual_artists <- sort(individual_artist_counts[individual_artist_counts > 1], decreasing = TRUE)
+print("Indywidualni artyści z największą liczbą utworów:")
+print(popular_individual_artists)
+```
+
+# Histogramy
+
+```{r plots, echo=FALSE}
+target_value <- mean(df$total_streams_billions, na.rm = TRUE)
+ggplot(df, aes(x = total_streams_billions)) + 
+  geom_histogram(bins = 21, fill = "lightgreen", color = "black", boundary = 0) + 
+  geom_vline(xintercept = target_value, color = 'red', linetype = "dashed", linewidth = 1) + 
+  # Ustawienie osi X, aby zaczynała się dokładnie od 0
+  scale_x_continuous(expand = expansion(mult = c(0, 0.05)), limits = c(0, NA)) +
+  labs(
+    title = "Histogram liczby odtworzeń",
+    x = "Liczba odtworzeń (w miliardach)",
+    y = "Liczba piosenek"
+  ) +
+  theme_minimal()
+```
+
+# 
+
+```{r plots99, echo=FALSE}
+ggplot(df, aes(x = release_year)) +
+  geom_histogram(binwidth = 1, fill = "lightgreen", color = "black", alpha = 0.7) +
+  labs(title = "Rozkład lat wydania utworów (Release Year)",
+       x = "Rok wydania",
+       y = "Liczba utworów") +
+  theme_minimal()
+```
+
+#
+
+```{r plots101, echo=FALSE}
+
+df_long <- pivot_longer(df, cols = c("bpm", "danceability", "energy", "valence", "acousticness"), names_to = "variable", values_to = "value")
+
+ggplot(df_long, aes(x = value, fill = variable)) +
+  geom_histogram(bins = 20, color = "white", show.legend = FALSE) +
+  facet_wrap(~variable, scales = "free") + # scales="free" pozwala każdemu wykresowi mieć własną oś X
+  labs(title = "Histogramy zmiennych ilościowych",
+       x = "Wartość",
+       y = "Częstość (Liczba piosenek)") +
+  theme_minimal() +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+# Korelacja
+
+```{r corelation}
+vars_to_cor <- df %>% 
+  select(total_streams_billions, bpm, danceability, energy, valence, acousticness)
+
+cor_matrix <- cor(df[ilosciowe], use = "complete.obs")
+
+print("Macierz korelacji:")
+print(cor_matrix)
+
+melted_cor <- melt(cor_matrix)
+```
+
+
+#  Mapa Ciepła
+
+```{r, echo=FALSE}
+ggplot(data = melted_cor, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  # Skala kolorów od niebieskiego (korelacja ujemna) do czerwonego (dodatnia)
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1, 1), space = "Lab", 
+                       name = "Korelacja Pearsona") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  coord_fixed() +
+  labs(title = "Mapa ciepła korelacji zmiennych muzycznych",
+       x = "", y = "") +
+  # Dodanie wartości korelacji na kafelkach dla czytelności
+  geom_text(aes(label = round(value, 2)), color = "black", size = 3)
+
+vars_to_cor2 <- df %>% 
+  select(bpm, danceability, energy, valence, acousticness)
+```
+
+# 
+
+```{r,echo=FALSE}
+ggpairs(vars_to_cor2,
+        title = "Macierz zależności i rozkładów zmiennych")+
+  ggplot2::theme_minimal() +
+  ggplot2::theme(axis.text = ggplot2::element_text(size = 7))
+```
+
+# Zależności
+
+```{r plots2, echo=FALSE}
+ggplot(df, aes(x = energy, y = acousticness)) +
+  geom_point(alpha = 0.5, color = "steelblue") +
+  # Linia 1. stopnia (prosta)
+  geom_smooth(method = "lm", formula = y ~ x, 
+              color = "red", se = FALSE, linetype = "solid", linewidth = 1) +
+  # Linia 2. stopnia (parabola)
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), 
+              color = "darkgreen", se = FALSE, linetype = "dashed", linewidth = 1) +
+  labs(title = "Zależność między energią a akustycznością",
+       subtitle = "Czerwona ciągła: liniowa | Zielona przerywana: kwadratowa",
+       x = "Energy",
+       y = "Acousticness") +
+  theme_minimal()
+
+```
+
+# Test Niezależności
+
+```{r independence}
+contingency_table <- table(df$explicit, df$genre_grouped)
+head(contingency_table)
+chi2_test <- chisq.test(contingency_table,correct=F)
+print(chi2_test)
+fisher_test <- fisher.test(contingency_table, simulate.p.value = TRUE)
+print(fisher_test)
+```
+
+# Regresja liniowa
+
+```{r regression}
+df$explicit <- as.factor(df$explicit)
+
+
+model1 <- lm(total_streams_billions ~ danceability + energy + bpm + valence + explicit, 
+             data = df)
+summary(model1)
+```
+
+#
+
+```{r regression2}
+model2 <- lm(total_streams_billions ~ danceability + energy, data=df)
+summary(model2)
+
+```
+
+# Diagnostyka
+
+```{r diagnostics,echo=FALSE}
+par(mfrow = c(2, 2))
+plot(model2)
+
+```
