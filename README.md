@@ -40,7 +40,7 @@ This project presents an exploratory statistical analysis of Spotify's all-time 
 - stargazer
 
 
-## Authors
+### Authors
 
 **Alicja Rączka & Jakub Maszkowski**
 
@@ -81,6 +81,11 @@ The final solution combines predictions from Random Forest and Extra Trees model
 | `raport.html` | Full project report |
 | `kaggle_submission.R` | Script generating the final Kaggle submission |
 
+
+### Author
+
+**Alicja Rączka**
+
 ---
 
 ## Technologies
@@ -95,6 +100,7 @@ The final solution combines predictions from Random Forest and Extra Trees model
 - lubridate
 - reshape2
 - GGally
+
 
 ---
 
@@ -119,7 +125,3 @@ source("Project2/kaggle_submission.R")
 The script automatically loads the provided datasets and generates the final Kaggle submission file.
 
 ---
-
-## Author
-
-**Alicja Rączka**
