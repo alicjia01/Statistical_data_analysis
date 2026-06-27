@@ -39,13 +39,11 @@ This project presents an exploratory statistical analysis of Spotify's all-time 
 - reshape2
 - stargazer
 
----
 
 ## Authors
 
 **Alicja Rączka & Jakub Maszkowski**
 
----
 
 ---
 
