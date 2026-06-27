@@ -17,14 +17,6 @@ Statistical_data_analysis/
     └── sampleSubmission.csv
 ```
 
----
-
-## Authors
-
-**Alicja Rączka & Jakub Maszkowski**
-
-------
-
 ## Project 1 – Spotify Data Analysis
 
 This project presents an exploratory statistical analysis of Spotify's all-time top songs dataset.
@@ -46,6 +38,14 @@ This project presents an exploratory statistical analysis of Spotify's all-time 
 - GGally
 - reshape2
 - stargazer
+
+---
+
+## Authors
+
+**Alicja Rączka & Jakub Maszkowski**
+
+---
 
 ---
 
